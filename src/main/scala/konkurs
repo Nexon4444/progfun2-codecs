@@ -1,0 +1,140 @@
+//strona
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
+import java.text.SimpleDateFormat
+import scala.util.{Failure, Success, Try}
+object App {
+
+  case class ValidData(cell_id: String, event_timestamp: String, phone_number: String, event_type: String, event_duration: String, data_transfered: String) {
+    val fmt: SimpleDateFormat  = new SimpleDateFormat("dd.mm.yyyy hh:mm:ss")
+    def checkCellId: Boolean = if (cell_id.isEmpty) throw(new Exception("checkCellId")) else true
+    def checkEventTimestamp: Boolean = {fmt.parse(event_timestamp); true}
+    def checkPhoneNumber: Boolean = if (phone_number.isEmpty) throw new Exception("checkPhoneNumber failed") else true
+    def checkEventType: Boolean = if (!List("CALL", "SMS", "MMS", "DATA").contains(event_type)) throw new Exception("checkEventType failed") else true
+    def checkEventDuration: Boolean = if (List("CALL", "SMS").contains(event_type) && event_duration.isEmpty) throw new Exception("checkEventDuration failed") else true
+    def checkDataTransfered: Boolean = if (List("MMS", "DATA").contains(event_type) && data_transfered.isEmpty) throw new Exception("checkDataTransfered failed") else true
+    def checkValidity: Try[Boolean] = {
+      Try {
+        checkCellId &&
+        checkEventTimestamp &&
+        checkPhoneNumber &&
+        checkEventType &&
+        checkEventDuration &&
+        checkDataTransfered
+      }
+    }
+
+  }
+
+  def main(args: Array[String]) = {
+    val sparkContext = SparkContext.getOrCreate()
+    val rdd = sparkContext.parallelize(args)
+    val splitText= rdd.map(_.split(",", -1)).map(attributes => Try(ValidData(attributes(0).stripPrefix("\"").stripSuffix("\""), attributes(1), attributes(2).stripPrefix("\"").stripSuffix("\""), attributes(3).stripPrefix("\"").stripSuffix("\""), attributes(4), attributes(5))))
+    val allRows = splitText.count()
+    val properRows = splitText.collect { case Success(x) => x }.map(_.checkValidity).collect { case Success(x) => x }.count()
+
+    println(properRows)
+    println(allRows-properRows)
+  }
+}
+
+
+//dom
+import java.text.SimpleDateFormat
+import scala.util
+import scala.util.{Failure, Success, Try}
+
+val fmt: SimpleDateFormat = SimpleDateFormat("dd.mm.yyyy hh:mm:ss")
+case class ValidData(cell_id: String, event_timestamp: String, phone_number: String, event_type: String, event_duration: String, data_transfered: String) {
+  def checkCellId: Boolean = if cell_id.isEmpty then throw(new Exception("checkCellId")) else true
+  def checkEventTimestamp: Boolean = {fmt.parse(event_timestamp); true}
+  def checkPhoneNumber: Boolean = if phone_number.isEmpty then throw new Exception("checkPhoneNumber failed") else true
+  def checkEventType: Boolean = if !List("CALL", "SMS", "MMS", "DATA").contains(event_type) then throw new Exception("checkEventType failed") else true
+  def checkEventDuration: Boolean = if (List("CALL", "SMS").contains(event_type) && event_duration.isEmpty) then throw new Exception("checkEventDuration failed") else true
+  def checkDataTransfered: Boolean = if (List("MMS", "DATA").contains(event_type) && data_transfered.isEmpty) then throw new Exception("checkDataTransfered failed") else true
+  def checkValidity: Try[Boolean] = {
+    Try {
+      checkCellId &&
+      checkEventTimestamp &&
+      checkPhoneNumber &&
+      checkEventType &&
+      checkEventDuration &&
+      checkDataTransfered
+    }
+  }
+
+}
+
+//  def this(cell_id: String, event_timestamp: String, phone_number: String, event_type: String, event_duration: String, data_transfered: Option[String]=None)
+  //def this(bar: Int) = this(bar, 0)
+//}
+
+//def checkIfProperData(attributes: Array[String]): Unit ={
+//  attributes(0)
+//}
+
+val rdd = Array("\"CL920087\",13.01.2021 21:11:00,\"999-999-99-678\",\"CALL\",865,", "\"CL920074\",20.01.2021 14:20:00,\"999-999-99-510\",\"CALL\",1198,", "\"CL920055\",11.01.2021 16:50:00,\"999-999-99-622\",\"MMS\",,134562",
+  "\"CL920087\",13.01.2021 21:11:00,\"999-999-99-678\",\"CALL\",865,", "\"CL920074\",20.01.2021 14:20:00,\"999-999-99-510\",\"CALL\",1198,")
+val splitText= rdd.map(_.split(",", -1))
+
+  .map(attributes => Try(ValidData(attributes(0).stripPrefix("\"").stripSuffix("\""), attributes(1), attributes(2).stripPrefix("\"").stripSuffix("\""), attributes(3).stripPrefix("\"").stripSuffix("\""), attributes(4), attributes(5))))
+
+
+val allRows: Int = splitText.size
+val properRowsx = splitText.collect { case Success(x) => x }.map(_.checkValidity)
+val properRows = splitText.collect { case Success(x) => x }.map(_.checkValidity).collect { case Success(x) => x }.size
+println(properRows)
+println(allRows - properRows)
+
+//import org.apache.spark.SparkContext
+//import org.apache.spark.sql.SparkSession
+//import scala.util.{Try, Success, Failure}
+//object App {
+//  case class ValidData(cell_id: String, event_timestamp: String, phone_number: String, event_type: String, event_duration: Long, data_transfered: Long){
+//    //def this(bar: Int) = this(bar, 0)
+//  }
+
+//  def main(args: Array[String]) = {
+//    val sparkContext = SparkContext.getOrCreate()
+//    val rdd = sparkContext.parallelize(args)
+//    val splitText = rdd.map(_.split(","))
+//      .map(attributes => Try(ValidData(attributes(0), attributes(1), attributes(2), attributes(3), attributes(4).toLong, attributes(5).toLong))).persist()
+
+//    val allRows = splitText.count()
+//    val properRows = splitText.collect{ case Success(x) => x }.count()
+//    println(properRows)
+//    println(allRows-properRows)
+//  }
+
+//  //def checkIfValid(str: Array[String]) = {
+//  //str match {
+//  // case Array(cell_id: String, event_timestamp
+//  // }
+//  //}
+//}
+//
+//"CL920087",13.01.2021 21:11:00,"999-999-99-678","CALL",865,
+//"CL920074",20.01.2021 14:20:00,"999-999-99-510","CALL",1198,
+//"CL920055",11.01.2021 16:50:00,"999-999-99-622","MMS",,134562
+//"CL920086",,"999-999-99-618","DATA",,1397194
+//"CL920090",24.01.2021 11:28:00,"999-999-99-554","MMS",,
+//"CL920064",26.01.2021 20:22:00,"999-999-99-671","DATA",,1706277
+//"CL920055",27.01.2021 18:23:00,"999-999-99-877","DATA",,1447896
+//"CL920067",16.01.2021 21:30:00,"999-999-99-734","CALL",233,
+//"CL920077",24.01.2021 14:15:00,"999-999-99-890","CALL",1135,
+//"CL920057",17.01.2021 12:18:00,"999-999-99-688","DATA",,1116826
+//"CL920054",18.01.2021 13:44:00,"999-999-99-918","DATA",,53880
+//"",20.01.2021 22:23:00,"999-999-99-907","DATA",,222138
+//"CL920092",15.01.2021 21:28:00,"999-999-99-541","DATA",,1661735
+//"CL920093",21.01.2021 18:22:00,"999-999-99-826","CALL",35,
+//"CL920069",20.01.2021 15:24:00,"999-999-99-558","CALL",786,
+//"CL920076",23.01.2021 22:46:00,"999-999-99-773","",,37675
+//"CL920074",27.01.2021 14:34:00,"999-999-99-659","CALL",1221,
+//"CL920069",15.01.2021 13:50:00,"999-999-99-763","CALL",2,
+//"CL920075",16.01.2021 15:16:00,"999-999-99-630","DATA",,1280502
+//"CL920055",18.01.2021 14:58:00,"999-999-99-660","CALL",1081,
+//"CL920084",26.01.2021 18:31:00,"","DATA",,1952224
+//"CL920067",17.01.2021 16:12:00,"999-999-99-878","CALL",1240,
+//"CL920050",13.01.2021 16:18:00,"999-999-99-916","CALL",1128,
+//"CL920054",16.01.2021 20:40:00,"999-999-99-949","MMS",,111704
+//"CL920080",23.01.2021 13:48:00,"999-999-99-858","MMS",,143903

@@ -10,3 +10,5 @@ libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
   "org.scalameta" %% "munit" % "0.7.26" % Test
 )
+
+libraryDependencies += "joda-time" % "joda-time" % "2.10.12"
